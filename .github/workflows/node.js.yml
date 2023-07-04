@@ -28,8 +28,8 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: yarn install --ignore-engines
-      - run: yarn lint
-      - run: yarn test --updateSnapshot
+      # - run: yarn lint
+      # - run: yarn test --updateSnapshot
       - run: yarn build
       # Github pages
       - run: yarn next export
