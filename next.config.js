@@ -1,63 +1,66 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  reactStrictMode: true,
-  swcMinify: true,
+// const nextConfig = {
+//   reactStrictMode: true,
+//   swcMinify: true,
+// };
+
+// /**
+//  * Github pages
+//  */
+// if (
+//   process.env.GITHUB_REPOSITORY &&
+//   ["phase-production-build", "phase-export"].includes(phase)
+// ) {
+//   const repositoryName = process.env.GITHUB_REPOSITORY.split("/")[1];
+
+//   nextConfig = {
+//     ...nextConfig,
+//     assetPrefix: `/${repositoryName}/`,
+//     basePath: `/${repositoryName}`,
+//   };
+// }
+
+// module.exports = nextConfig;
+
+const webpack = (config, options) => {
+  return config;
 };
 
-/**
- * Github pages
- */
-if (
-  process.env.GITHUB_REPOSITORY &&
-  ["phase-production-build", "phase-export"].includes(phase)
-) {
-  const repositoryName = process.env.GITHUB_REPOSITORY.split("/")[1];
-
-  nextConfig = {
-    ...nextConfig,
-    assetPrefix: `/${repositoryName}/`,
-    basePath: `/${repositoryName}`,
+module.exports = (phase, defaultConfig) => {
+  /** @type {import('next').NextConfig} */
+  let config = {
+    reactStrictMode: true,
+    swcMinify: true,
   };
-}
 
-module.exports = nextConfig;
+  if (phase !== "phase-production-server") {
+    /**
+     * Github pages
+     */
+    if (
+      process.env.GITHUB_REPOSITORY &&
+      ["phase-production-build", "phase-export"].includes(phase)
+    ) {
+      const repositoryName = process.env.GITHUB_REPOSITORY.split("/")[1];
 
-// const webpack = (config, options) => {
+      config = {
+        ...config,
+        assetPrefix: `/${repositoryName}/`,
+        basePath: `/${repositoryName}`,
+      };
+    }
 
-//   return config
-// }
+    console.log("config", config);
 
-// module.exports = (phase, defaultConfig) => {
-//   if (phase !== 'phase-production-server') {
-//     const withBundleAnalyzer = require('@next/bundle-analyzer')({
-//       enabled: process.env.ANALYZE === 'true',
-//     })
+    return config;
+  }
 
-//     /**
-//      * Github pages
-//      */
-//     if (
-//       process.env.GITHUB_REPOSITORY &&
-//       ['phase-production-build', 'phase-export'].includes(phase)
-//     ) {
-//       const repositoryName = process.env.GITHUB_REPOSITORY.split('/')[1]
+  // else
+  // return defaultConfig
 
-//       config = {
-//         ...config,
-//         assetPrefix: `/${repositoryName}/`,
-//         basePath: `/${repositoryName}`,
-//       }
-//     }
-
-//     return config
-//   }
-
-//   // else
-//   // return defaultConfig
-
-//   return {
-//     ...defaultConfig,
-//     webpack,
-//     generateEtags: false,
-//   }
-// }
+  return {
+    ...defaultConfig,
+    webpack,
+    generateEtags: false,
+  };
+};
