@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 
+type AudioEvent = Event & {
+  target: HTMLAudioElement;
+};
+
 export default function PlayerPage() {
   const [events] = useState([]);
 
@@ -15,32 +19,53 @@ export default function PlayerPage() {
       return;
     }
 
-    const onPlay = (event: Event) => {
+    const onPlay = (event: AudioEvent) => {
       console.log("onPlay event", event);
 
       window.parent?.postMessage(
         {
-          message: "played",
+          message: "play",
         },
         "*"
       );
     };
 
-    const onPause = (event: Event) => {
-      console.log("onPause event", event);
+    const onTimeUpdate = (event: AudioEvent) => {
+      console.log("onTimeUpdate event", event);
+
+      window.parent?.postMessage(
+        {
+          message: "timeupdate",
+          currentTime: event.target.currentTime,
+        },
+        "*"
+      );
     };
 
-    const onSeeded = (event: Event) => {
+    const onPause = (event: AudioEvent) => {
+      console.log("onPause event", event);
+
+      window.parent?.postMessage(
+        {
+          message: "pause",
+        },
+        "*"
+      );
+    };
+
+    const onSeeded = (event: AudioEvent) => {
       console.log("onSeeded event", event);
     };
 
     audio.addEventListener("play", onPlay);
     audio.addEventListener("pause", onPause);
+    audio.addEventListener("timeupdate", onTimeUpdate);
     audio.addEventListener("seeked", onSeeded);
 
     return () => {
       audio.removeEventListener("play", onPlay);
       audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("timeupdate", onTimeUpdate);
       audio.removeEventListener("seeked", onSeeded);
     };
   }, [audio]);
@@ -49,25 +74,38 @@ export default function PlayerPage() {
    * Слушаем сообщения из родительского окна
    */
   useEffect(() => {
-    const handler = (
-      event: MessageEvent<{
-        command?: string;
-        // glb?: Blob;
-      }>
-    ) => {
+    if (!audio) {
+      return;
+    }
+
+    type EventData =
+      | {
+          command: "play";
+        }
+      | {
+          command: "pause";
+        }
+      | {
+          command: "volume";
+          volume: number;
+        };
+
+    const handler = (event: MessageEvent<EventData>) => {
       console.log("iFrame window message event", event);
 
-      const { command } = event.data || {};
+      console.log("iFrame window message command", event.data.command);
 
-      console.log("iFrame window message command", command);
-
-      switch (command) {
+      switch (event.data.command) {
         case "play":
-          audio?.play();
+          audio.play();
 
           break;
         case "pause":
-          audio?.pause();
+          audio.pause();
+
+          break;
+        case "volume":
+          audio.volume = event.data.volume;
 
           break;
       }
