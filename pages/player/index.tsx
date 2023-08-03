@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { IFrameMessageEventData, MessageEventData } from "../../src/components/iframe-player/interfaces";
 
 type AudioEvent = Event & {
-  target: HTMLAudioElement;
+  currentTarget: HTMLAudioElement;
 };
 
 export default function PlayerPage() {
@@ -10,6 +11,10 @@ export default function PlayerPage() {
   const [audio, audioSetter] = useState<HTMLAudioElement | null>(null);
 
   console.log("audio", audio);
+
+  const postMessage = useCallback((data: MessageEventData) => {
+    window.parent?.postMessage(data, "*");
+  }, []);
 
   /**
    * Навешиваем события на плейер
@@ -22,35 +27,35 @@ export default function PlayerPage() {
     const onPlay = (event: AudioEvent) => {
       console.log("onPlay event", event);
 
-      window.parent?.postMessage(
-        {
-          message: "play",
-        },
-        "*"
-      );
+      postMessage({
+        type: "play",
+      });
     };
 
     const onTimeUpdate = (event: AudioEvent) => {
       console.log("onTimeUpdate event", event);
 
-      window.parent?.postMessage(
-        {
-          message: "timeupdate",
-          currentTime: event.target.currentTime,
-        },
-        "*"
-      );
+      postMessage({
+        type: "timeupdate",
+        currentTime: event.currentTarget.currentTime,
+      });
     };
 
     const onPause = (event: AudioEvent) => {
       console.log("onPause event", event);
 
-      window.parent?.postMessage(
-        {
-          message: "pause",
-        },
-        "*"
-      );
+      postMessage({
+        type: "pause",
+      });
+    };
+
+    const onVolumeChange = (event: AudioEvent) => {
+      console.log("onVolumeChange event", event);
+
+      postMessage({
+        type: "volumechange",
+        volume: event.currentTarget.volume,
+      });
     };
 
     const onSeeded = (event: AudioEvent) => {
@@ -61,14 +66,16 @@ export default function PlayerPage() {
     audio.addEventListener("pause", onPause);
     audio.addEventListener("timeupdate", onTimeUpdate);
     audio.addEventListener("seeked", onSeeded);
+    audio.addEventListener("volumechange", onVolumeChange);
 
     return () => {
       audio.removeEventListener("play", onPlay);
       audio.removeEventListener("pause", onPause);
       audio.removeEventListener("timeupdate", onTimeUpdate);
       audio.removeEventListener("seeked", onSeeded);
+      audio.removeEventListener("volumechange", onVolumeChange);
     };
-  }, [audio]);
+  }, [audio, postMessage]);
 
   /**
    * Слушаем сообщения из родительского окна
@@ -77,25 +84,21 @@ export default function PlayerPage() {
     if (!audio) {
       return;
     }
+    
+    setTimeout(() => {
+      postMessage({
+        type: "loaded",
+        duration: audio.duration,
+        volume: audio.volume,
+      });
+    }, 1000)
 
-    type EventData =
-      | {
-          command: "play";
-        }
-      | {
-          command: "pause";
-        }
-      | {
-          command: "volume";
-          volume: number;
-        };
-
-    const handler = (event: MessageEvent<EventData>) => {
+    const handler = (event: MessageEvent<IFrameMessageEventData>) => {
       console.log("iFrame window message event", event);
 
-      console.log("iFrame window message command", event.data.command);
+      console.log("iFrame window message type", event.data.type);
 
-      switch (event.data.command) {
+      switch (event.data.type) {
         case "play":
           audio.play();
 
@@ -106,6 +109,10 @@ export default function PlayerPage() {
           break;
         case "volume":
           audio.volume = event.data.volume;
+
+          break;
+        case "seed":
+          audio.currentTime = event.data.currentTime;
 
           break;
       }
@@ -120,7 +127,7 @@ export default function PlayerPage() {
     return () => {
       window.removeEventListener("message", handler);
     };
-  }, [audio]);
+  }, [audio, postMessage]);
 
   return (
     <div>
