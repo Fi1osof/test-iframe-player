@@ -15,6 +15,10 @@ export type MessageEventData =
       volume: number;
     }
   | {
+      type: "seed";
+      currentTime: number;
+    }
+  | {
       type: "timeupdate";
       currentTime: number;
     };

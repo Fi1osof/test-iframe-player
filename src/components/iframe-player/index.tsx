@@ -29,6 +29,7 @@ export const IFramePlayer: React.FC<IFramePlayerProps> = ({
           volumeSetter(event.data.volume);
           break;
         case "timeupdate":
+        case "seed":
           console.log(event.data.currentTime);
           currentTimeSetter(event.data.currentTime);
           break;
